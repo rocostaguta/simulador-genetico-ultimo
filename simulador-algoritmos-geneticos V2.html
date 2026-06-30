@@ -1,0 +1,1628 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Simulador de Algoritmos Genéticos</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #22263a;
+    --surface3: #2a2f47;
+    --border: #3a3f5c;
+    --border2: #4a5070;
+    --text: #e8eaf6;
+    --text2: #9fa3c0;
+    --text3: #6b6f8a;
+    --accent: #5c6ef8;
+    --accent2: #7c8dff;
+    --accent-bg: #1e2240;
+    --green: #4ecca3;
+    --green-bg: #0d2520;
+    --amber: #f5a623;
+    --amber-bg: #261a00;
+    --red: #f56565;
+    --red-bg: #2a1010;
+    --purple: #b57bee;
+    --purple-bg: #1e1230;
+    --teal: #4dd0e1;
+    --bit0: #1e2240;
+    --bit0-border: #3a4080;
+    --bit0-text: #5c6ef8;
+    --bit1: #0d2520;
+    --bit1-border: #1e5040;
+    --bit1-text: #4ecca3;
+    --radius: 10px;
+    --radius-sm: 6px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  /* LAYOUT */
+  .app { display: grid; grid-template-columns: 320px 1fr; min-height: 100vh; }
+  .sidebar {
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    padding: 20px;
+    overflow-y: auto;
+    max-height: 100vh;
+    position: sticky;
+    top: 0;
+  }
+  .main { padding: 24px; overflow-y: auto; }
+
+  /* HEADER */
+  .app-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--accent2);
+    letter-spacing: 0.3px;
+    margin-bottom: 4px;
+  }
+  .app-subtitle { font-size: 12px; color: var(--text3); margin-bottom: 20px; }
+
+  /* CONTEXT CARD */
+  .context-card {
+    background: var(--accent-bg);
+    border: 1px solid var(--accent);
+    border-radius: var(--radius);
+    padding: 14px;
+    margin-bottom: 20px;
+  }
+  .context-label {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--accent2);
+    margin-bottom: 8px;
+  }
+  .context-title { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
+  .context-desc { font-size: 12px; color: var(--text2); line-height: 1.5; }
+  .context-genes { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 4px; }
+  .gene-tag {
+    font-size: 10px;
+    background: var(--surface3);
+    border: 1px solid var(--border2);
+    border-radius: 4px;
+    padding: 2px 7px;
+    color: var(--text2);
+  }
+  .gene-tag span { color: var(--accent2); font-weight: 600; }
+
+  .explain-card {
+    background: var(--green-bg);
+    border: 1px solid var(--green);
+    border-radius: var(--radius);
+    padding: 14px;
+    margin-bottom: 20px;
+  }
+
+  /* PARAMS */
+  .section-title {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--text3);
+    margin-bottom: 12px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--border);
+  }
+  .param-group { margin-bottom: 16px; }
+  .param-label {
+    font-size: 12px;
+    color: var(--text2);
+    margin-bottom: 6px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .param-value {
+    background: var(--surface3);
+    border: 1px solid var(--border2);
+    border-radius: 4px;
+    padding: 1px 7px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--accent2);
+    min-width: 36px;
+    text-align: center;
+  }
+  input[type=range] {
+    width: 100%;
+    accent-color: var(--accent);
+    cursor: pointer;
+    height: 4px;
+  }
+  input[type=number] {
+    width: 100%;
+    background: var(--surface3);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 7px 10px;
+    color: var(--text);
+    font-size: 13px;
+  }
+  input[type=number]:focus { outline: 1px solid var(--accent); }
+
+  /* TOGGLE */
+  .toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
+  .toggle-label { font-size: 12px; color: var(--text2); }
+  .toggle {
+    position: relative;
+    width: 36px;
+    height: 20px;
+    cursor: pointer;
+  }
+  .toggle input { opacity: 0; width: 0; height: 0; }
+  .toggle-track {
+    position: absolute;
+    inset: 0;
+    background: var(--border2);
+    border-radius: 10px;
+    transition: background .2s;
+  }
+  .toggle input:checked + .toggle-track { background: var(--accent); }
+  .toggle-thumb {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 14px;
+    height: 14px;
+    background: #fff;
+    border-radius: 50%;
+    transition: transform .2s;
+    pointer-events: none;
+  }
+  .toggle input:checked ~ .toggle-thumb { transform: translateX(16px); }
+
+  /* BUTTONS */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 9px 16px;
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: all .15s;
+  }
+  .btn-primary {
+    background: var(--accent);
+    color: #fff;
+    width: 100%;
+    justify-content: center;
+  }
+  .btn-primary:hover { background: var(--accent2); }
+  .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn-secondary {
+    background: var(--surface3);
+    color: var(--text2);
+    border: 1px solid var(--border2);
+    width: 100%;
+    justify-content: center;
+    margin-top: 8px;
+  }
+  .btn-secondary:hover { background: var(--surface2); color: var(--text); }
+  .btn-step {
+    background: var(--green-bg);
+    color: var(--green);
+    border: 1px solid var(--green);
+    width: 100%;
+    justify-content: center;
+    margin-top: 8px;
+  }
+  .btn-step:hover { background: #1a3a30; }
+  .btn-step:disabled { opacity: 0.35; cursor: not-allowed; }
+  .btn-auto {
+    background: var(--amber-bg);
+    color: var(--amber);
+    border: 1px solid var(--amber);
+    width: 100%;
+    justify-content: center;
+    margin-top: 8px;
+  }
+  .btn-auto:hover { background: #3a2500; }
+
+  /* MAIN AREA */
+  .main-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .main-title { font-size: 18px; font-weight: 700; color: var(--text); }
+  .stats-row { display: flex; gap: 12px; flex-wrap: wrap; }
+  .stat-chip {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 6px 12px;
+    font-size: 12px;
+    color: var(--text2);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .stat-chip strong { color: var(--text); }
+
+  /* PHASE BANNER */
+  .phase-banner {
+    border-radius: var(--radius);
+    padding: 10px 16px;
+    margin-bottom: 16px;
+    font-size: 13px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    display: none;
+  }
+  .phase-banner.active { display: flex; }
+  .phase-seleccion { background: var(--purple-bg); border: 1px solid var(--purple); color: var(--purple); }
+  .phase-cruce { background: var(--accent-bg); border: 1px solid var(--accent); color: var(--accent2); }
+  .phase-mutacion { background: var(--amber-bg); border: 1px solid var(--amber); color: var(--amber); }
+  .phase-nueva { background: var(--green-bg); border: 1px solid var(--green); color: var(--green); }
+  .phase-elitismo { background: #1a0d2e; border: 1px solid #c084fc; color: #c084fc; }
+
+  /* POPULATION GRID */
+  .population-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .individual-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px;
+    transition: border-color .2s, transform .15s;
+    position: relative;
+    overflow: hidden;
+  }
+  .individual-card.elite {
+    border-color: #c084fc;
+    background: #1a0d2e;
+  }
+  .individual-card.elite::before {
+    content: '★ Élite';
+    position: absolute;
+    top: 0;
+    right: 0;
+    background: #c084fc;
+    color: #0f0525;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-bottom-left-radius: 6px;
+  }
+  .individual-card.selected {
+    border-color: var(--purple);
+    background: var(--purple-bg);
+  }
+  .individual-card.parent-a { border-color: var(--accent); background: var(--accent-bg); }
+  .individual-card.parent-b { border-color: var(--teal); background: #0d1e22; }
+  .individual-card.mutated { border-color: var(--amber); background: var(--amber-bg); }
+  .individual-card.new-offspring { border-color: var(--green); background: var(--green-bg); }
+  .individual-card.highlight-flash { animation: flash .5s ease; }
+  @keyframes flash { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+  .individual-card.best-final {
+    border-color: #ffd700;
+    background: #1a1500;
+    box-shadow: 0 0 16px rgba(255,215,0,0.25);
+  }
+  .individual-card.best-final::before {
+    content: '🏆 MEJOR';
+    position: absolute;
+    top: 0; right: 0;
+    background: #ffd700;
+    color: #1a0f00;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-bottom-left-radius: 6px;
+  }
+
+  /* Gene name labels under chromosome */
+  .gene-labels {
+    display: flex;
+    gap: 3px;
+    margin-top: 4px;
+  }
+  .gene-label-cell {
+    width: 28px;
+    text-align: center;
+    font-size: 8px;
+    color: var(--text3);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex-shrink: 0;
+    cursor: default;
+  }
+
+  .card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  .ind-id { font-size: 11px; color: var(--text3); font-weight: 600; }
+  .fitness-badge {
+    font-size: 12px;
+    font-weight: 700;
+    background: var(--surface3);
+    border: 1px solid var(--border2);
+    border-radius: 4px;
+    padding: 2px 8px;
+    color: var(--amber);
+  }
+  .fitness-bar-wrap {
+    height: 4px;
+    background: var(--surface3);
+    border-radius: 2px;
+    margin-top: 6px;
+    margin-bottom: 10px;
+  }
+  .fitness-bar {
+    height: 4px;
+    border-radius: 2px;
+    background: linear-gradient(90deg, var(--accent), var(--green));
+    transition: width .4s ease;
+  }
+
+  /* CHROMOSOME DISPLAY */
+  .chromosome {
+    display: flex;
+    gap: 3px;
+    flex-wrap: nowrap;
+  }
+  .bit {
+    width: 28px;
+    height: 28px;
+    border-radius: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 700;
+    transition: all .3s;
+    flex-shrink: 0;
+  }
+  .bit-0 { background: var(--bit0); border: 1px solid var(--bit0-border); color: var(--bit0-text); }
+  .bit-1 { background: var(--bit1); border: 1px solid var(--bit1-border); color: var(--bit1-text); }
+  .bit.highlight {
+    box-shadow: 0 0 0 2px var(--amber);
+    transform: scale(1.15);
+  }
+  .bit.crossover-left { box-shadow: 0 0 0 2px var(--accent); }
+  .bit.crossover-right { box-shadow: 0 0 0 2px var(--teal); }
+  .bit.mutated-bit { box-shadow: 0 0 0 2px var(--amber); background: #3a2200; border-color: var(--amber); }
+
+  /* CROSSOVER POINT MARKER */
+  .cross-point {
+    width: 3px;
+    height: 28px;
+    background: var(--amber);
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+
+  /* X value display */
+  .x-value { font-size: 11px; color: var(--text3); margin-top: 6px; }
+  .x-value span { color: var(--teal); font-weight: 600; }
+
+  /* LOG */
+  .log-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    margin-top: 16px;
+  }
+  .log-header {
+    background: var(--surface2);
+    padding: 10px 16px;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text2);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+  }
+  .log-body {
+    padding: 12px 16px;
+    max-height: 220px;
+    overflow-y: auto;
+    font-size: 12px;
+    font-family: 'Consolas', 'Courier New', monospace;
+  }
+  .log-entry { margin-bottom: 4px; color: var(--text2); line-height: 1.5; }
+  .log-entry.info { color: var(--text2); }
+  .log-entry.success { color: var(--green); }
+  .log-entry.warn { color: var(--amber); }
+  .log-entry.accent { color: var(--accent2); }
+  .log-entry.purple { color: var(--purple); }
+  .log-entry.teal { color: var(--teal); }
+  .log-entry.sep { color: var(--border2); }
+
+  /* GENERATION CHART */
+  .chart-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+  .chart-title { font-size: 12px; color: var(--text3); margin-bottom: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+  canvas { display: block; }
+
+  /* BEST INDIVIDUAL */
+  .best-card {
+    background: var(--green-bg);
+    border: 1px solid var(--green);
+    border-radius: var(--radius);
+    padding: 16px 18px;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: flex-start;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+  .best-label { font-size: 11px; color: var(--green); font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 6px; }
+  .best-genome { display: flex; gap: 3px; }
+  .best-fitness { font-size: 20px; font-weight: 800; color: var(--green); }
+  .best-x { font-size: 13px; color: var(--text2); margin-top: 2px; }
+  .best-meaning { font-size: 13px; color: var(--text2); margin-top: 6px; }
+
+  /* TOOLTIP */
+  .tooltip { position: relative; cursor: help; }
+  .tooltip-text {
+    display: none;
+    position: absolute;
+    bottom: 130%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--surface3);
+    border: 1px solid var(--border2);
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 11px;
+    color: var(--text2);
+    white-space: nowrap;
+    z-index: 100;
+    pointer-events: none;
+  }
+  .tooltip:hover .tooltip-text { display: block; }
+
+  /* TABS */
+  .tabs { display: flex; gap: 4px; margin-bottom: 16px; }
+  .tab {
+    padding: 7px 14px;
+    border-radius: var(--radius-sm);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    color: var(--text3);
+    background: transparent;
+    border: 1px solid transparent;
+    transition: all .15s;
+  }
+  .tab.active {
+    background: var(--surface2);
+    border-color: var(--border2);
+    color: var(--text);
+  }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* EMPTY STATE */
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text3);
+  }
+  .empty-state svg { margin-bottom: 16px; opacity: 0.4; }
+  .empty-title { font-size: 16px; font-weight: 600; color: var(--text2); margin-bottom: 8px; }
+  .empty-desc { font-size: 13px; max-width: 320px; margin: 0 auto; line-height: 1.6; }
+
+  /* PROGRESS */
+  .gen-progress {
+    background: var(--surface3);
+    border-radius: 4px;
+    height: 6px;
+    margin-bottom: 16px;
+    overflow: hidden;
+  }
+  .gen-progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--green));
+    border-radius: 4px;
+    transition: width .3s;
+  }
+
+  /* CROSS POINT SELECTOR */
+  .cross-point-selector {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+  }
+  .cp-toggle {
+    width: 30px;
+    height: 30px;
+    border-radius: 6px;
+    background: var(--surface3);
+    border: 1px solid var(--border2);
+    color: var(--text3);
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all .15s;
+  }
+  .cp-toggle:hover { border-color: var(--amber); }
+  .cp-toggle.active {
+    background: var(--amber-bg);
+    border-color: var(--amber);
+    color: var(--amber);
+  }
+  .cp-hint { font-size: 10px; color: var(--text3); margin-top: 6px; }
+
+  /* CONTEXT NEW BTN */
+  .new-context-btn {
+    font-size: 11px;
+    background: transparent;
+    border: 1px solid var(--accent);
+    color: var(--accent2);
+    border-radius: 4px;
+    padding: 3px 8px;
+    cursor: pointer;
+    float: right;
+  }
+  .new-context-btn:hover { background: var(--accent-bg); }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+  @media (max-width: 800px) {
+    .app { grid-template-columns: 1fr; }
+    .sidebar { max-height: none; position: static; }
+    .main { padding: 16px; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- ===== SIDEBAR ===== -->
+<aside class="sidebar">
+  <div class="app-title">🧬 Algoritmos Genéticos</div>
+  <div class="app-subtitle">Simulador interactivo • Universidad</div>
+
+  <!-- Context card -->
+  <div class="context-card">
+    <div class="context-label">
+      Contexto activo
+      <button class="new-context-btn" onclick="newContext()">↻ Nuevo</button>
+    </div>
+    <div class="context-title" id="ctx-title">—</div>
+    <div class="context-desc" id="ctx-desc">—</div>
+    <div class="context-genes" id="ctx-genes"></div>
+  </div>
+
+  <!-- Plain-language explanation -->
+  <div class="explain-card" id="explain-card">
+    <div class="context-label" style="color:var(--green)">En palabras simples</div>
+    <div id="explain-text" style="font-size:12px;color:var(--text2);line-height:1.6"></div>
+  </div>
+
+  <!-- Parameters -->
+  <div class="section-title">Parámetros</div>
+
+  <div class="param-group">
+    <div class="param-label">
+      Tamaño de población
+      <span class="param-value" id="lbl-pop">10</span>
+    </div>
+    <input type="range" id="param-pop" min="4" max="20" value="10"
+      oninput="document.getElementById('lbl-pop').textContent=this.value; onParamChange()">
+  </div>
+
+  <div class="param-group">
+    <div class="param-label">
+      Puntos de cruce (fijos)
+    </div>
+    <div style="font-size:11px;color:var(--text3);margin-bottom:8px">Elegí entre qué genes se corta el cromosoma. Se mantiene igual en todas las generaciones.</div>
+    <div class="cross-point-selector" id="cross-point-selector"></div>
+  </div>
+
+  <div class="param-group">
+    <div class="param-label">
+      Iteraciones máximas
+      <span class="param-value" id="lbl-iters">20</span>
+    </div>
+    <input type="range" id="param-iters" min="5" max="100" value="20"
+      oninput="document.getElementById('lbl-iters').textContent=this.value">
+  </div>
+
+  <div class="param-group">
+    <div class="param-label">
+      Prob. mutación
+      <span class="param-value" id="lbl-mut">0.03</span>
+    </div>
+    <input type="range" id="param-mut" min="1" max="3" value="3"
+      oninput="document.getElementById('lbl-mut').textContent=(this.value/100).toFixed(2); onParamChange()">
+    <div class="cp-hint">En cada generación se sortea un número al azar. Si es ≤ a este valor, un único individuo elegido al azar muta un gen.</div>
+  </div>
+
+  <div class="toggle-row">
+    <span class="toggle-label">Elitismo</span>
+    <label class="toggle">
+      <input type="checkbox" id="param-elitism" onchange="onElitismChange()">
+      <div class="toggle-track"></div>
+      <div class="toggle-thumb"></div>
+    </label>
+  </div>
+
+  <div id="elite-count-group" class="param-group" style="display:none">
+    <div class="param-label">
+      Individuos élite
+      <span class="param-value" id="lbl-elite">2</span>
+    </div>
+    <input type="range" id="param-elite" min="1" max="5" value="2"
+      oninput="document.getElementById('lbl-elite').textContent=this.value; onParamChange()">
+  </div>
+
+  <div style="margin-top:20px">
+    <button class="btn btn-primary" onclick="initPopulation()">
+      ⚡ Inicializar población
+    </button>
+    <button class="btn btn-step" id="btn-step" onclick="stepEvolution()" disabled>
+      ▶ Siguiente iteración
+    </button>
+    <button class="btn btn-auto" id="btn-auto" onclick="toggleAuto()" style="display:none">
+      ⏩ Evolucionar todo
+    </button>
+    <button class="btn btn-secondary" id="btn-reset" onclick="resetSim()" style="display:none">
+      ↺ Reiniciar
+    </button>
+  </div>
+</aside>
+
+<!-- ===== MAIN ===== -->
+<main class="main">
+  <div class="main-header">
+    <div>
+      <div class="main-title" id="main-title">Simulador de Algoritmos Genéticos</div>
+      <div style="font-size:12px;color:var(--text3);margin-top:3px">
+        Cromosoma binario de 8 genes · f(x) = x²
+      </div>
+    </div>
+    <div class="stats-row" id="stats-row" style="display:none">
+      <div class="stat-chip">Generación <strong id="stat-gen">0</strong></div>
+      <div class="stat-chip">Mejor fitness <strong id="stat-best">—</strong></div>
+      <div class="stat-chip">Promedio <strong id="stat-avg">—</strong></div>
+    </div>
+  </div>
+
+  <!-- Phase banner -->
+  <div class="phase-banner" id="phase-banner"></div>
+
+  <!-- Tabs -->
+  <div class="tabs" id="main-tabs" style="display:none">
+    <button class="tab active" onclick="switchTab('population')">Población</button>
+    <button class="tab" onclick="switchTab('evolution')">Evolución</button>
+    <button class="tab" onclick="switchTab('about')">¿Cómo funciona?</button>
+  </div>
+
+  <!-- TAB: POPULATION -->
+  <div class="tab-panel active" id="tab-population">
+
+    <!-- Final solution (only shown at the end) -->
+    <div class="best-card" id="best-card" style="display:none">
+      <div style="flex:0 0 auto">
+        <div class="best-label">🏆 Solución final — mejor individuo</div>
+        <div class="best-genome" id="best-genome" style="margin-bottom:8px"></div>
+        <div class="best-fitness" id="best-fitness-val">—</div>
+        <div class="best-x" id="best-x-val">x = —</div>
+      </div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:11px;color:var(--green);font-weight:700;text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px">¿Qué significa este resultado?</div>
+        <div class="best-meaning" id="best-meaning" style="font-size:13px;color:var(--text2);line-height:1.6">—</div>
+      </div>
+    </div>
+
+    <!-- Progress bar -->
+    <div class="gen-progress" id="gen-progress" style="display:none">
+      <div class="gen-progress-bar" id="gen-progress-bar" style="width:0%"></div>
+    </div>
+
+    <!-- Population grid -->
+    <div class="population-grid" id="population-grid"></div>
+
+    <!-- Empty state -->
+    <div class="empty-state" id="empty-state">
+      <svg width="64" height="64" viewBox="0 0 64 64" fill="none">
+        <rect x="8" y="24" width="8" height="8" rx="2" fill="#4ecca3"/>
+        <rect x="20" y="24" width="8" height="8" rx="2" fill="#5c6ef8"/>
+        <rect x="32" y="24" width="8" height="8" rx="2" fill="#4ecca3"/>
+        <rect x="44" y="24" width="8" height="8" rx="2" fill="#5c6ef8"/>
+        <rect x="8" y="36" width="8" height="8" rx="2" fill="#5c6ef8" opacity=".4"/>
+        <rect x="20" y="36" width="8" height="8" rx="2" fill="#4ecca3" opacity=".4"/>
+        <rect x="32" y="36" width="8" height="8" rx="2" fill="#5c6ef8" opacity=".4"/>
+        <rect x="44" y="36" width="8" height="8" rx="2" fill="#4ecca3" opacity=".4"/>
+      </svg>
+      <div class="empty-title">Sin población todavía</div>
+      <div class="empty-desc">Configurá los parámetros en el panel izquierdo y presioná "Inicializar población" para comenzar.</div>
+    </div>
+
+    <!-- Log -->
+    <div class="log-section" id="log-section" style="display:none">
+      <div class="log-header">
+        Registro de operaciones
+        <button onclick="clearLog()" style="background:transparent;border:none;color:var(--text3);font-size:11px;cursor:pointer">Limpiar</button>
+      </div>
+      <div class="log-body" id="log-body"></div>
+    </div>
+  </div>
+
+  <!-- TAB: EVOLUTION -->
+  <div class="tab-panel" id="tab-evolution">
+    <div class="chart-wrap">
+      <div class="chart-title">Evolución del fitness por generación</div>
+      <canvas id="fitness-chart" height="200"></canvas>
+    </div>
+    <div id="gen-history" style="font-size:12px;color:var(--text2)">
+      <p style="color:var(--text3)">Las estadísticas de cada generación aparecerán aquí.</p>
+    </div>
+  </div>
+
+  <!-- TAB: ABOUT -->
+  <div class="tab-panel" id="tab-about">
+    <div style="max-width:680px">
+      <h2 style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:16px">¿Cómo funciona un algoritmo genético?</h2>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px">
+          <div style="font-size:11px;color:var(--accent2);font-weight:700;text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">1 · Representación</div>
+          <p style="font-size:12px;color:var(--text2);line-height:1.6">Cada <strong style="color:var(--text)">individuo</strong> es un cromosoma de 8 bits. Leído como binario, representa un número x entre 0 y 255. La función <strong style="color:var(--amber)">f(x) = x²</strong> es el fitness: a mayor x, mejor.</p>
+        </div>
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px">
+          <div style="font-size:11px;color:var(--purple);font-weight:700;text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">2 · Selección</div>
+          <p style="font-size:12px;color:var(--text2);line-height:1.6">Se eligen los individuos con <strong style="color:var(--text)">mejor fitness</strong> para reproducirse. Esto imita la selección natural: los más adaptados dejan más descendencia.</p>
+        </div>
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px">
+          <div style="font-size:11px;color:var(--accent2);font-weight:700;text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">3 · Cruce (crossover)</div>
+          <p style="font-size:12px;color:var(--text2);line-height:1.6">Dos padres intercambian segmentos de su cromosoma en <strong style="color:var(--text)">puntos de cruce que se definen antes de iniciar y no cambian</strong> entre generaciones. Los genes a la izquierda del corte vienen de un padre y los de la derecha, del otro.</p>
+        </div>
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px">
+          <div style="font-size:11px;color:var(--amber);font-weight:700;text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">4 · Mutación</div>
+          <p style="font-size:12px;color:var(--text2);line-height:1.6">En cada generación se sortea <strong style="color:var(--text)">un único número al azar</strong>. Si ese número es ≤ al umbral definido (máx. 0.03), se elige un individuo al azar y se invierte uno de sus genes (0→1 ó 1→0). Mantiene diversidad genética sin destruir lo que el cruce construyó.</p>
+        </div>
+      </div>
+
+      <div style="background:var(--accent-bg);border:1px solid var(--accent);border-radius:var(--radius);padding:14px;margin-bottom:20px">
+        <div style="font-size:11px;color:var(--accent2);font-weight:700;margin-bottom:8px">Función de fitness: f = X²</div>
+        <p style="font-size:12px;color:var(--text2);line-height:1.6">El cromosoma se interpreta como un número entero X (de 0 a 255 en binario). La función de evaluación es <strong style="color:var(--amber)">f = X²</strong>. El cromosoma <code style="background:var(--surface3);padding:1px 5px;border-radius:3px;color:var(--green)">11111111</code> representa X=255, con f=65025 (valor óptimo). El algoritmo busca que la población converja hacia cromosomas con más 1s en las posiciones más significativas (las de mayor peso binario).</p>
+      </div>
+
+      <div style="background:var(--green-bg);border:1px solid var(--green);border-radius:var(--radius);padding:14px">
+        <div style="font-size:11px;color:var(--green);font-weight:700;margin-bottom:8px">Elitismo</div>
+        <p style="font-size:12px;color:var(--text2);line-height:1.6">Si está activado, los N mejores individuos de la generación actual pasan <strong style="color:var(--text)">intactos y resaltados en violeta</strong> a la siguiente generación, garantizando que el mejor resultado nunca empeore de una generación a la otra.</p>
+      </div>
+    </div>
+  </div>
+</main>
+</div>
+
+<script>
+// ============================================================
+// CONTEXTS
+// ============================================================
+const CONTEXTS = [
+  {
+    title: "Diseño de dieta saludable",
+    desc: "Buscamos la combinación óptima de alimentos en una dieta diaria. El objetivo es maximizar el valor nutricional total.",
+    objective: "Maximizar el valor nutricional de la dieta",
+    plainIntro: "Estamos buscando armar el menú diario ideal. Cada gen del cromosoma indica si un grupo de alimento está incluido (1) o no (0) en la dieta de esa persona. Cuantos más grupos de alimentos saludables estén activados, mayor es el número que representa el cromosoma y mejor es el puntaje (fitness) de esa dieta. El algoritmo va a ir probando combinaciones hasta encontrar la dieta con mejor valor nutricional posible.",
+    plainSolution: (x, f) => `La mejor dieta encontrada incluye casi todos los grupos de alimentos recomendados, alcanzando un valor x=${x} (de un máximo posible de 255), con un puntaje nutricional de ${f.toLocaleString()} puntos. Esta combinación es la que el algoritmo identificó como la más completa y equilibrada entre todas las que probó.`,
+    genes: [
+      {bit:0, name:"Frutas"}, {bit:1, name:"Verduras"}, {bit:2, name:"Proteína animal"},
+      {bit:3, name:"Legumbres"}, {bit:4, name:"Cereales integrales"}, {bit:5, name:"Lácteos"},
+      {bit:6, name:"Frutos secos"}, {bit:7, name:"Aceite saludable"}
+    ]
+  },
+  {
+    title: "Configuración de red neuronal",
+    desc: "Optimizamos hiperparámetros de una red neuronal. Cada gen activa o desactiva una opción de configuración.",
+    objective: "Maximizar la precisión del modelo",
+    plainIntro: "Queremos encontrar la mejor configuración para entrenar una red neuronal. Cada gen del cromosoma representa si una técnica de entrenamiento está activada (1) o desactivada (0), por ejemplo el dropout o el uso de Adam como optimizador. Mientras más técnicas útiles estén combinadas correctamente, mayor es el rendimiento esperado del modelo. El algoritmo va probando distintas combinaciones hasta dar con la configuración que maximiza la precisión.",
+    plainSolution: (x, f) => `La mejor configuración encontrada activa la mayoría de las técnicas de entrenamiento recomendadas, con un valor x=${x} sobre 255. Se estima que esta configuración alcanzaría una precisión cercana al ${(x/255*100).toFixed(1)}%, siendo la combinación más efectiva detectada por el algoritmo.`,
+    genes: [
+      {bit:0, name:"Dropout"}, {bit:1, name:"Batch norm"}, {bit:2, name:"ReLU"},
+      {bit:3, name:"Adam optimizer"}, {bit:4, name:"Early stopping"}, {bit:5, name:"Data aug."},
+      {bit:6, name:"Skip connections"}, {bit:7, name:"Learning rate decay"}
+    ]
+  },
+  {
+    title: "Rutina de entrenamiento físico",
+    desc: "Buscamos la rutina semanal que maximiza el rendimiento atlético combinando tipos de ejercicio.",
+    objective: "Maximizar el rendimiento atlético semanal",
+    plainIntro: "Queremos armar la rutina semanal de entrenamiento que más mejora el rendimiento físico de una persona. Cada gen indica si un tipo de ejercicio está incluido (1) o no (0) en la semana, como cardio, fuerza o yoga. Cuantos más ejercicios complementarios se combinen, mayor es el puntaje de rendimiento. El algoritmo prueba distintas rutinas hasta encontrar la más efectiva.",
+    plainSolution: (x, f) => `La mejor rutina encontrada combina casi todos los tipos de ejercicio disponibles, con un valor x=${x} sobre 255, logrando un puntaje de rendimiento de ${f.toLocaleString()} puntos. Es la rutina semanal más completa que el algoritmo logró construir.`,
+    genes: [
+      {bit:0, name:"Cardio lunes"}, {bit:1, name:"Fuerza martes"}, {bit:2, name:"HIIT miércoles"},
+      {bit:3, name:"Natación jueves"}, {bit:4, name:"Yoga viernes"}, {bit:5, name:"Crossfit sáb."},
+      {bit:6, name:"Ciclismo dom."}, {bit:7, name:"Estiramientos"}
+    ]
+  },
+  {
+    title: "Planificación de cultivos",
+    desc: "Optimizamos qué cultivos plantar en 8 parcelas para maximizar el rendimiento económico de la temporada.",
+    objective: "Maximizar rendimiento económico de cosecha",
+    plainIntro: "Un productor agropecuario tiene que decidir qué cultivos sembrar esta temporada. Cada gen del cromosoma representa un cultivo posible, como trigo, maíz o soja, y vale 1 si se decide sembrarlo o 0 si no. La combinación de cultivos elegida determina la ganancia esperada de la temporada. El algoritmo prueba distintas combinaciones hasta encontrar la planificación más rentable.",
+    plainSolution: (x, f) => `La mejor planificación encontrada combina la mayoría de los cultivos disponibles, con un valor x=${x} sobre 255, generando una ganancia estimada de $${(x*x*10).toLocaleString()}. Esta es la combinación de cultivos que el algoritmo identificó como la más rentable para la temporada.`,
+    genes: [
+      {bit:0, name:"Trigo"}, {bit:1, name:"Maíz"}, {bit:2, name:"Soja"},
+      {bit:3, name:"Girasol"}, {bit:4, name:"Papa"}, {bit:5, name:"Tomate"},
+      {bit:6, name:"Cebolla"}, {bit:7, name:"Lechuga"}
+    ]
+  },
+  {
+    title: "Optimización de ruta logística",
+    desc: "Seleccionamos qué depósitos y rutas activar para minimizar costos y maximizar eficiencia de entrega.",
+    objective: "Maximizar eficiencia de distribución",
+    plainIntro: "Una empresa de logística necesita decidir qué recursos usar para entregar sus pedidos de la forma más eficiente posible. Cada gen del cromosoma representa un recurso disponible, como un depósito, una ruta expresa o un vehículo eléctrico, y vale 1 si se utiliza o 0 si no. Cuantos más recursos útiles se combinen correctamente, mayor es la eficiencia de entrega. El algoritmo busca la combinación que más mejora ese resultado.",
+    plainSolution: (x, f) => `La mejor combinación de recursos logísticos encontrada utiliza casi todas las opciones disponibles, con un valor x=${x} sobre 255, logrando una eficiencia estimada del ${(x/255*100).toFixed(1)}%. Esta es la configuración de distribución más eficiente que el algoritmo logró encontrar.`,
+    genes: [
+      {bit:0, name:"Depósito Norte"}, {bit:1, name:"Depósito Sur"}, {bit:2, name:"Ruta expresa"},
+      {bit:3, name:"Carga nocturna"}, {bit:4, name:"Vehículo eléctrico"}, {bit:5, name:"GPS activo"},
+      {bit:6, name:"Almacén frío"}, {bit:7, name:"Entrega mismo día"}
+    ]
+  },
+  {
+    title: "Composición de portafolio financiero",
+    desc: "Decidimos en qué instrumentos financieros invertir para maximizar el rendimiento ajustado por riesgo.",
+    objective: "Maximizar rendimiento del portafolio",
+    plainIntro: "Un inversor quiere armar el portafolio que más rendimiento le genere. Cada gen del cromosoma representa un instrumento financiero, como acciones tecnológicas, bonos del estado u oro, y vale 1 si se incluye en el portafolio o 0 si no. La combinación de instrumentos elegidos determina el rendimiento esperado. El algoritmo prueba distintas composiciones hasta encontrar la que maximiza ese rendimiento.",
+    plainSolution: (x, f) => `El mejor portafolio encontrado combina la mayoría de los instrumentos financieros disponibles, con un valor x=${x} sobre 255, alcanzando un rendimiento anual estimado del ${(x*x/65025*18).toFixed(2)}%. Esta es la composición que el algoritmo identificó como la más rentable.`,
+    genes: [
+      {bit:0, name:"Acciones tech"}, {bit:1, name:"Bonos del estado"}, {bit:2, name:"Oro"},
+      {bit:3, name:"Criptomonedas"}, {bit:4, name:"Bienes raíces"}, {bit:5, name:"Divisas"},
+      {bit:6, name:"Commodities"}, {bit:7, name:"Startups"}
+    ]
+  }
+];
+
+// ============================================================
+// STATE
+// ============================================================
+let ctx = null;
+let population = [];
+let generation = 0;
+let initialized = false;
+let autoRunning = false;
+let autoTimer = null;
+let historyBest = [];
+let historyAvg = [];
+let historyGens = [];
+let MAX_FITNESS = 255 * 255; // 65025
+let fixedCrossPoints = []; // puntos de cruce fijos, elegidos por el usuario, no cambian entre generaciones
+
+// ============================================================
+// INIT
+// ============================================================
+window.onload = function() {
+  newContext();
+  buildCrossPointSelector();
+};
+
+function newContext() {
+  ctx = CONTEXTS[Math.floor(Math.random() * CONTEXTS.length)];
+  document.getElementById('ctx-title').textContent = ctx.title;
+  document.getElementById('ctx-desc').textContent = ctx.desc + ' ' + ctx.objective + '.';
+  document.getElementById('explain-text').textContent = ctx.plainIntro;
+  const genesEl = document.getElementById('ctx-genes');
+  genesEl.innerHTML = '';
+  ctx.genes.forEach((g, i) => {
+    const tag = document.createElement('div');
+    tag.className = 'gene-tag';
+    tag.innerHTML = `<span>G${i}</span> ${g.name}`;
+    genesEl.appendChild(tag);
+  });
+}
+
+function buildCrossPointSelector() {
+  const sel = document.getElementById('cross-point-selector');
+  sel.innerHTML = '';
+  // Cross points can be between gene i and gene i+1, for i in 1..7 (after gene index 0..6)
+  for (let i = 1; i <= 7; i++) {
+    const btn = document.createElement('button');
+    btn.className = 'cp-toggle';
+    btn.textContent = i;
+    btn.title = `Cortar entre el gen ${i-1} y el gen ${i}`;
+    btn.onclick = () => toggleCrossPoint(i, btn);
+    sel.appendChild(btn);
+  }
+  // Default: one cross point in the middle
+  fixedCrossPoints = [4];
+  refreshCrossPointButtons();
+}
+
+function toggleCrossPoint(point, btn) {
+  if (fixedCrossPoints.includes(point)) {
+    fixedCrossPoints = fixedCrossPoints.filter(p => p !== point);
+  } else {
+    fixedCrossPoints.push(point);
+  }
+  fixedCrossPoints.sort((a,b) => a-b);
+  // Always keep at least one cross point
+  if (fixedCrossPoints.length === 0) fixedCrossPoints = [point];
+  refreshCrossPointButtons();
+  onParamChange();
+}
+
+function refreshCrossPointButtons() {
+  document.querySelectorAll('.cp-toggle').forEach((btn, idx) => {
+    const point = idx + 1;
+    btn.classList.toggle('active', fixedCrossPoints.includes(point));
+  });
+}
+
+function getParams() {
+  return {
+    popSize: parseInt(document.getElementById('param-pop').value),
+    crossPoints: [...fixedCrossPoints],
+    maxIters: parseInt(document.getElementById('param-iters').value),
+    mutProb: parseFloat(document.getElementById('param-mut').value) / 100,
+    elitism: document.getElementById('param-elitism').checked,
+    eliteCount: parseInt(document.getElementById('param-elite').value)
+  };
+}
+
+function onParamChange() {
+  if (!initialized) return;
+  // Live re-render with current population to show parameter impact
+  renderPopulation(population);
+}
+
+function onElitismChange() {
+  const on = document.getElementById('param-elitism').checked;
+  document.getElementById('elite-count-group').style.display = on ? 'block' : 'none';
+}
+
+// ============================================================
+// GENETIC ALGORITHM CORE
+// ============================================================
+function randomChromosome() {
+  return Array.from({length: 8}, () => Math.random() < 0.5 ? 1 : 0);
+}
+
+function chromosomeToX(chrom) {
+  return chrom.reduce((acc, bit, i) => acc + bit * Math.pow(2, 7 - i), 0);
+}
+
+function fitness(chrom) {
+  const x = chromosomeToX(chrom);
+  return x * x;
+}
+
+
+function initPopulation() {
+  const p = getParams();
+  population = Array.from({length: p.popSize}, (_, i) => ({
+    id: i + 1,
+    genes: randomChromosome(),
+    fitness: 0,
+    x: 0
+  }));
+  population.forEach(ind => {
+    ind.x = chromosomeToX(ind.genes);
+    ind.fitness = fitness(ind.genes);
+  });
+  generation = 0;
+  historyBest = [];
+  historyAvg = [];
+  historyGens = [];
+  initialized = true;
+
+  recordHistory();
+  document.getElementById('empty-state').style.display = 'none';
+  document.getElementById('log-section').style.display = 'block';
+  document.getElementById('stats-row').style.display = 'flex';
+  document.getElementById('main-tabs').style.display = 'flex';
+  document.getElementById('gen-progress').style.display = 'block';
+  document.getElementById('btn-step').disabled = false;
+  document.getElementById('btn-auto').style.display = 'flex';
+  document.getElementById('btn-reset').style.display = 'flex';
+  document.getElementById('phase-banner').className = 'phase-banner';
+  document.getElementById('best-card').style.display = 'none';
+
+  clearLog();
+  log('sep', '══════════════════════════════════════');
+  log('accent', `⚡ Población inicial creada · ${p.popSize} individuos`);
+  log('info', `Contexto: ${ctx.title}`);
+  log('info', `Función de fitness: f = X² | Óptimo en x=255 → f=65025`);
+  log('info', `Puntos de cruce fijos (no cambian entre generaciones): [${p.crossPoints.join(', ')}]`);
+  log('sep', '──────────────────────────────────────');
+  population.forEach(ind => {
+    log('info', `Ind.${ind.id} | x=${ind.x.toString().padStart(3)} | genes=[${ind.genes.join('')}] | f=${ind.fitness}`);
+  });
+  log('sep', '══════════════════════════════════════');
+
+  renderPopulation(population);
+  updateStats();
+  drawChart();
+}
+
+function stepEvolution() {
+  const p = getParams();
+  if (p.crossPoints.length === 0) {
+    alert('Elegí al menos un punto de cruce antes de evolucionar.');
+    return;
+  }
+  if (generation >= p.maxIters) {
+    showPhase('nueva', '🏁 Límite de iteraciones alcanzado');
+    document.getElementById('btn-step').disabled = true;
+    if (autoRunning) stopAuto();
+    return;
+  }
+
+  generation++;
+  updateProgressBar();
+  log('sep', '══════════════════════════════════════');
+  log('accent', `🔄 Generación ${generation} de ${p.maxIters}`);
+  log('sep', '──────────────────────────────────────');
+
+  // PHASE 1: Sort by fitness (best selection)
+  const sorted = [...population].sort((a, b) => b.fitness - a.fitness);
+  showPhase('seleccion', '🎯 Selección — ordenando por fitness (mejores primero)');
+
+  log('purple', `[Selección] Ordenando ${population.length} individuos por f = X²`);
+  sorted.forEach((ind, i) => {
+    log('info', `  #${i+1} Ind.${ind.id} | x=${ind.x} | f=${ind.fitness}`);
+  });
+
+  // Mark selected (top half)
+  const selectedCount = Math.max(2, Math.floor(sorted.length / 2));
+  const selected = sorted.slice(0, selectedCount);
+  log('purple', `→ Seleccionados ${selectedCount} mejores para reproducción`);
+
+  // Render selection phase
+  population.forEach(ind => {
+    ind._phase = selected.find(s => s.id === ind.id) ? 'selected' : '';
+  });
+  renderPopulation(population, 'selection');
+
+  // PHASE 2: Crossover (fixed points, same for every generation)
+  setTimeout(() => {
+    showPhase('cruce', `🔀 Cruce — punto(s) fijo(s): [${p.crossPoints.join(', ')}]`);
+    const newPop = [];
+    let crossoverLog = [];
+
+    // Keep elite if needed
+    let eliteInds = [];
+    if (p.elitism) {
+      eliteInds = sorted.slice(0, p.eliteCount).map(ind => ({
+        ...ind,
+        id: ind.id,
+        genes: [...ind.genes],
+        _phase: 'elite'
+      }));
+    }
+
+    while (newPop.length < population.length - eliteInds.length) {
+      const a = selected[Math.floor(Math.random() * selected.length)];
+      let b = selected[Math.floor(Math.random() * selected.length)];
+      let attempts = 0;
+      while (b.id === a.id && selected.length > 1 && attempts < 10) {
+        b = selected[Math.floor(Math.random() * selected.length)];
+        attempts++;
+      }
+
+      // Use the fixed crossover points (same in every generation)
+      const points = [...p.crossPoints];
+      const [child1, child2] = crossover(a.genes, b.genes, points);
+
+      crossoverLog.push({
+        pa: a.id, pb: b.id,
+        points: points,
+        c1: child1, c2: child2
+      });
+
+      if (newPop.length < population.length - eliteInds.length)
+        newPop.push({id: Date.now() + newPop.length, genes: child1, _phase: 'new-offspring', _points: points, _pA: a.id, _pB: b.id});
+      if (newPop.length < population.length - eliteInds.length)
+        newPop.push({id: Date.now() + newPop.length + 1000, genes: child2, _phase: 'new-offspring', _points: points, _pA: a.id, _pB: b.id});
+    }
+
+    log('accent', `[Cruce] Puntos de cruce fijos: [${p.crossPoints.join(', ')}] (se mantienen iguales en todas las generaciones)`);
+    crossoverLog.forEach(c => {
+      log('info', `  Padre A (Ind.${c.pa}) × Padre B (Ind.${c.pb})`);
+      log('teal', `  Hijo 1: [${c.c1.join('')}]`);
+      log('teal', `  Hijo 2: [${c.c2.join('')}]`);
+    });
+
+    // PHASE 3: Mutation — happens at most once per generation, on one random individual,
+    // decided by drawing a single pseudo-random number and comparing it to mutProb.
+    setTimeout(() => {
+      const roll = Math.random();
+      const willMutate = roll <= p.mutProb;
+      showPhase('mutacion', willMutate
+        ? `🎲 Mutación — número sorteado ${roll.toFixed(4)} ≤ ${p.mutProb} → SE MUTA`
+        : `🎲 Mutación — número sorteado ${roll.toFixed(4)} > ${p.mutProb} → no se muta`);
+
+      log('warn', `[Mutación] Número pseudoaleatorio sorteado: ${roll.toFixed(4)} (umbral ≤ ${p.mutProb})`);
+
+      if (willMutate && newPop.length > 0) {
+        const target = newPop[Math.floor(Math.random() * newPop.length)];
+        const geneIdx = Math.floor(Math.random() * 8);
+        const before = target.genes[geneIdx];
+        target.genes[geneIdx] = 1 - before;
+        target._phase = 'mutated';
+        target._mutatedBits = [geneIdx];
+        log('warn', `  → Mutación aplicada al individuo [${target.genes.join('')}] en el gen ${geneIdx} (${before}→${1-before})`);
+      } else {
+        log('info', `  → No hubo mutación en esta generación.`);
+      }
+
+      // PHASE 4: New generation
+      setTimeout(() => {
+        // Compute fitness for all new
+        newPop.forEach(ind => {
+          ind.x = chromosomeToX(ind.genes);
+          ind.fitness = fitness(ind.genes);
+        });
+        eliteInds.forEach(ind => {
+          ind.x = chromosomeToX(ind.genes);
+          ind.fitness = fitness(ind.genes);
+        });
+
+        // Renumber IDs
+        const fullPop = [...eliteInds, ...newPop].slice(0, population.length);
+        fullPop.forEach((ind, i) => { ind.id = i + 1; });
+
+        population = fullPop;
+
+        if (p.elitism && eliteInds.length > 0) {
+          showPhase('elitismo', `⭐ Elitismo — ${eliteInds.length} individuo(s) preservados`);
+          log('purple', `[Elitismo] Preservando ${eliteInds.length} mejor(es) individuo(s)`);
+          eliteInds.forEach(ind => log('info', `  Élite: x=${ind.x} | f=${ind.fitness} | [${ind.genes.join('')}]`));
+        } else {
+          showPhase('nueva', `✅ Nueva generación ${generation} lista`);
+        }
+
+        log('sep', '──────────────────────────────────────');
+        log('success', `[Gen.${generation}] Resultados:`);
+        population.forEach(ind => {
+          log('info', `  Ind.${ind.id} | x=${ind.x.toString().padStart(3)} | [${ind.genes.join('')}] | f=${ind.fitness}`);
+        });
+
+        recordHistory();
+        renderPopulation(population);
+        updateStats();
+        drawChart();
+
+        if (generation >= p.maxIters) {
+          showPhase('nueva', '🏁 Evolución completada');
+          document.getElementById('btn-step').disabled = true;
+          if (autoRunning) stopAuto();
+          log('sep', '══════════════════════════════════════');
+          log('success', `✔ Evolución finalizada en ${generation} generaciones`);
+          const best = [...population].sort((a,b) => b.fitness - a.fitness)[0];
+          log('success', `🏆 Mejor resultado: x=${best.x}, f=${best.fitness}`);
+          log('success', ctx.plainSolution(best.x, best.fitness));
+          updateBest();
+          renderPopulation(population);
+        }
+      }, 600);
+    }, 600);
+  }, 600);
+}
+
+
+function crossover(genesA, genesB, points) {
+  const child1 = [...genesA];
+  const child2 = [...genesB];
+  let fromA = true;
+  let lastPoint = 0;
+  const allPoints = [...points, 8];
+  allPoints.forEach((pt, idx) => {
+    if (!fromA) {
+      for (let i = lastPoint; i < pt; i++) {
+        child1[i] = genesB[i];
+        child2[i] = genesA[i];
+      }
+    }
+    fromA = !fromA;
+    lastPoint = pt;
+  });
+  return [child1, child2];
+}
+
+// ============================================================
+// RENDER
+// ============================================================
+function renderPopulation(pop, phase) {
+  const grid = document.getElementById('population-grid');
+  grid.innerHTML = '';
+  const p = getParams();
+  const isFinished = generation >= p.maxIters;
+
+  // Determine the best individual — only highlight on the last generation
+  const bestFitness = Math.max(...pop.map(i => i.fitness));
+  const bestId = isFinished ? pop.find(i => i.fitness === bestFitness)?.id : null;
+
+  pop.forEach(ind => {
+    const card = document.createElement('div');
+    card.className = 'individual-card';
+
+    const isBestFinal = isFinished && ind.id === bestId;
+
+    if (isBestFinal) {
+      card.classList.add('best-final');
+    } else if (ind._phase === 'elite') {
+      card.classList.add('elite');
+    } else if (ind._phase === 'selected') {
+      card.classList.add('selected');
+    } else if (ind._phase === 'mutated') {
+      card.classList.add('mutated');
+    } else if (ind._phase === 'new-offspring') {
+      card.classList.add('new-offspring');
+    }
+
+    const x = chromosomeToX(ind.genes);
+    const f = fitness(ind.genes);
+    const barWidth = Math.round(f / MAX_FITNESS * 100);
+
+    let chromHTML = buildChromosomeHTML(ind);
+
+    let phaseTag = '';
+    if (isBestFinal)          phaseTag = '<span style="font-size:10px;color:#ffd700;font-weight:700">🏆 MEJOR</span>';
+    else if (ind._phase === 'elite')        phaseTag = '<span style="font-size:10px;color:#c084fc;font-weight:700">★ ÉLITE</span>';
+    else if (ind._phase === 'selected')     phaseTag = '<span style="font-size:10px;color:var(--purple);font-weight:600">● SELEC.</span>';
+    else if (ind._phase === 'new-offspring')phaseTag = '<span style="font-size:10px;color:var(--green);font-weight:600">● HIJO</span>';
+    else if (ind._phase === 'mutated')      phaseTag = '<span style="font-size:10px;color:var(--amber);font-weight:600">● MUTADO</span>';
+
+    card.innerHTML = `
+      <div class="card-header">
+        <span class="ind-id">Individuo #${ind.id} ${phaseTag}</span>
+        <span class="fitness-badge">f = X² = ${f.toLocaleString()}</span>
+      </div>
+      ${chromHTML}
+      <div class="fitness-bar-wrap">
+        <div class="fitness-bar" style="width:${barWidth}%"></div>
+      </div>
+      <div class="x-value">x = <span>${x}</span> &nbsp;·&nbsp; ${ctx.genes.filter((g, i) => ind.genes[i] === 1).map(g => g.name).join(', ') || '(ninguno activo)'}</div>
+    `;
+    grid.appendChild(card);
+  });
+}
+
+function buildChromosomeHTML(ind) {
+  // Always show the fixed crossover points on every card, regardless of phase
+  const points = fixedCrossPoints.length > 0 ? fixedCrossPoints : (ind._points || []);
+
+  let html = '<div class="chromosome">';
+  ind.genes.forEach((bit, i) => {
+    let extraClass = '';
+    if (ind._mutatedBits && ind._mutatedBits.includes(i)) {
+      extraClass = ' mutated-bit';
+    } else if (points.length > 0) {
+      // Color each segment alternating between accent and teal
+      let seg = 0;
+      for (let pt of points) { if (i >= pt) seg++; }
+      extraClass = seg % 2 === 0 ? ' crossover-left' : ' crossover-right';
+    }
+
+    html += `<div class="bit bit-${bit}${extraClass}" title="Gen ${i} · ${ctx.genes[i].name}: ${bit===1?'Activo (1)':'Inactivo (0)'}">${bit}</div>`;
+
+    // Draw separator line at each fixed crossover point
+    if (points.includes(i + 1) && i < 7) {
+      html += '<div class="cross-point"></div>';
+    }
+  });
+  html += '</div>';
+  // Gene name labels below chromosome
+  html += '<div class="gene-labels">';
+  ind.genes.forEach((bit, i) => {
+    html += `<div class="gene-label-cell" title="${ctx.genes[i].name}">${ctx.genes[i].name.split(' ')[0]}</div>`;
+  });
+  html += '</div>';
+  return html;
+}
+
+function updateStats() {
+  const fits = population.map(i => i.fitness);
+  const best = Math.max(...fits);
+  const avg = Math.round(fits.reduce((a,b) => a+b, 0) / fits.length);
+  document.getElementById('stat-gen').textContent = generation;
+  document.getElementById('stat-best').textContent = best.toLocaleString();
+  document.getElementById('stat-avg').textContent = avg.toLocaleString();
+}
+
+function updateBest() {
+  const best = [...population].sort((a,b) => b.fitness - a.fitness)[0];
+  const card = document.getElementById('best-card');
+  card.style.display = 'flex';
+
+  // Genome display
+  const genomeEl = document.getElementById('best-genome');
+  genomeEl.innerHTML = '';
+  best.genes.forEach(b => {
+    const div = document.createElement('div');
+    div.className = `bit bit-${b}`;
+    div.style.width = '26px';
+    div.style.height = '26px';
+    div.textContent = b;
+    genomeEl.appendChild(div);
+  });
+
+  document.getElementById('best-fitness-val').textContent = `f = X² = ${best.fitness.toLocaleString()}`;
+  document.getElementById('best-x-val').textContent = `x = ${best.x}`;
+  // Coloquial final explanation
+  document.getElementById('best-meaning').textContent = ctx.plainSolution(best.x, best.fitness);
+}
+
+function updateProgressBar() {
+  const p = getParams();
+  const pct = Math.round(generation / p.maxIters * 100);
+  document.getElementById('gen-progress-bar').style.width = pct + '%';
+}
+
+function recordHistory() {
+  const fits = population.map(i => i.fitness);
+  historyBest.push(Math.max(...fits));
+  historyAvg.push(Math.round(fits.reduce((a,b) => a+b, 0) / fits.length));
+  historyGens.push(generation);
+}
+
+// ============================================================
+// CHART
+// ============================================================
+let chartInstance = null;
+
+function drawChart() {
+  const canvas = document.getElementById('fitness-chart');
+  const ctx2 = canvas.getContext('2d');
+  canvas.width = canvas.offsetWidth || 600;
+  canvas.height = 200;
+  ctx2.clearRect(0, 0, canvas.width, canvas.height);
+
+  if (historyGens.length < 1) return;
+
+  const W = canvas.width, H = canvas.height;
+  const pad = {top: 20, right: 20, bottom: 30, left: 70};
+  const chartW = W - pad.left - pad.right;
+  const chartH = H - pad.top - pad.bottom;
+
+  const maxVal = MAX_FITNESS;
+  const minVal = 0;
+
+  const xScale = i => pad.left + (historyGens.length > 1 ? i / (historyGens.length - 1) * chartW : chartW / 2);
+  const yScale = v => pad.top + chartH - (v / maxVal) * chartH;
+
+  // Grid
+  ctx2.strokeStyle = '#3a3f5c';
+  ctx2.lineWidth = 0.5;
+  for (let g = 0; g <= 4; g++) {
+    const y = pad.top + g * chartH / 4;
+    ctx2.beginPath();
+    ctx2.moveTo(pad.left, y);
+    ctx2.lineTo(W - pad.right, y);
+    ctx2.stroke();
+    const val = Math.round(maxVal * (1 - g/4));
+    ctx2.fillStyle = '#6b6f8a';
+    ctx2.font = '10px system-ui';
+    ctx2.textAlign = 'right';
+    ctx2.fillText(val.toLocaleString(), pad.left - 6, y + 4);
+  }
+
+  // X axis labels
+  ctx2.fillStyle = '#6b6f8a';
+  ctx2.font = '10px system-ui';
+  ctx2.textAlign = 'center';
+  historyGens.forEach((g, i) => {
+    if (historyGens.length <= 10 || i % Math.ceil(historyGens.length / 10) === 0) {
+      ctx2.fillText('Gen ' + g, xScale(i), H - 8);
+    }
+  });
+
+  // Average line
+  if (historyAvg.length > 0) {
+    ctx2.beginPath();
+    ctx2.strokeStyle = '#5c6ef8';
+    ctx2.lineWidth = 1.5;
+    ctx2.setLineDash([4, 3]);
+    historyAvg.forEach((v, i) => {
+      if (i === 0) ctx2.moveTo(xScale(i), yScale(v));
+      else ctx2.lineTo(xScale(i), yScale(v));
+    });
+    ctx2.stroke();
+    ctx2.setLineDash([]);
+  }
+
+  // Best line
+  if (historyBest.length > 0) {
+    ctx2.beginPath();
+    ctx2.strokeStyle = '#4ecca3';
+    ctx2.lineWidth = 2;
+    historyBest.forEach((v, i) => {
+      if (i === 0) ctx2.moveTo(xScale(i), yScale(v));
+      else ctx2.lineTo(xScale(i), yScale(v));
+    });
+    ctx2.stroke();
+
+    // Last point dot
+    const lastI = historyBest.length - 1;
+    ctx2.beginPath();
+    ctx2.arc(xScale(lastI), yScale(historyBest[lastI]), 4, 0, Math.PI*2);
+    ctx2.fillStyle = '#4ecca3';
+    ctx2.fill();
+  }
+
+  // Legend
+  ctx2.font = '11px system-ui';
+  ctx2.textAlign = 'left';
+  ctx2.fillStyle = '#4ecca3';
+  ctx2.fillRect(pad.left, pad.top - 14, 12, 2);
+  ctx2.fillText('Mejor', pad.left + 16, pad.top - 8);
+  ctx2.fillStyle = '#5c6ef8';
+  ctx2.fillRect(pad.left + 70, pad.top - 14, 12, 2);
+  ctx2.fillText('Promedio', pad.left + 86, pad.top - 8);
+
+  // Gen history table
+  const histEl = document.getElementById('gen-history');
+  const rows = historyGens.map((g, i) => `
+    <tr>
+      <td style="padding:3px 10px;color:var(--text3)">Gen. ${g}</td>
+      <td style="padding:3px 10px;color:var(--green)">${historyBest[i].toLocaleString()}</td>
+      <td style="padding:3px 10px;color:var(--accent2)">${historyAvg[i].toLocaleString()}</td>
+    </tr>`).reverse().slice(0, 10).join('');
+  histEl.innerHTML = `
+    <table style="width:100%;border-collapse:collapse;font-size:12px;margin-top:12px">
+      <thead><tr style="border-bottom:1px solid var(--border)">
+        <th style="padding:4px 10px;text-align:left;color:var(--text3);font-weight:600">Generación</th>
+        <th style="padding:4px 10px;text-align:left;color:var(--text3);font-weight:600">Mejor fitness</th>
+        <th style="padding:4px 10px;text-align:left;color:var(--text3);font-weight:600">Promedio</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+    <p style="font-size:11px;color:var(--text3);margin-top:8px">Mostrando últimas 10 generaciones.</p>
+  `;
+}
+
+// ============================================================
+// PHASE BANNER
+// ============================================================
+function showPhase(type, text) {
+  const banner = document.getElementById('phase-banner');
+  banner.className = `phase-banner active phase-${type}`;
+  banner.textContent = text;
+}
+
+// ============================================================
+// LOG
+// ============================================================
+function log(type, text) {
+  const body = document.getElementById('log-body');
+  const entry = document.createElement('div');
+  entry.className = `log-entry ${type}`;
+  entry.textContent = text;
+  body.appendChild(entry);
+  body.scrollTop = body.scrollHeight;
+}
+
+function clearLog() {
+  document.getElementById('log-body').innerHTML = '';
+}
+
+// ============================================================
+// AUTO RUN
+// ============================================================
+function toggleAuto() {
+  if (autoRunning) {
+    stopAuto();
+  } else {
+    startAuto();
+  }
+}
+
+function startAuto() {
+  autoRunning = true;
+  document.getElementById('btn-auto').textContent = '⏸ Pausar';
+  document.getElementById('btn-step').disabled = true;
+  runNext();
+}
+
+function stopAuto() {
+  autoRunning = false;
+  clearTimeout(autoTimer);
+  document.getElementById('btn-auto').textContent = '⏩ Evolucionar todo';
+  document.getElementById('btn-step').disabled = false;
+}
+
+function runNext() {
+  if (!autoRunning) return;
+  const p = getParams();
+  if (generation >= p.maxIters) {
+    stopAuto();
+    return;
+  }
+  stepEvolution();
+  autoTimer = setTimeout(runNext, 2200);
+}
+
+// ============================================================
+// TABS
+// ============================================================
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach((t, i) => {
+    const names = ['population', 'evolution', 'about'];
+    t.classList.toggle('active', names[i] === name);
+  });
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  if (name === 'evolution') drawChart();
+}
+
+// ============================================================
+// RESET
+// ============================================================
+function resetSim() {
+  if (autoRunning) stopAuto();
+  population = [];
+  generation = 0;
+  initialized = false;
+  historyBest = [];
+  historyAvg = [];
+  historyGens = [];
+
+  document.getElementById('population-grid').innerHTML = '';
+  document.getElementById('empty-state').style.display = 'block';
+  document.getElementById('log-section').style.display = 'none';
+  document.getElementById('stats-row').style.display = 'none';
+  document.getElementById('main-tabs').style.display = 'none';
+  document.getElementById('gen-progress').style.display = 'none';
+  document.getElementById('best-card').style.display = 'none';
+  document.getElementById('btn-step').disabled = true;
+  document.getElementById('btn-auto').style.display = 'none';
+  document.getElementById('btn-reset').style.display = 'none';
+  document.getElementById('phase-banner').className = 'phase-banner';
+  document.getElementById('gen-history').innerHTML = '';
+  switchTab('population');
+  newContext();
+  // Reset cross points to default
+  fixedCrossPoints = [4];
+  buildCrossPointSelector();
+}
+</script>
+</body>
+</html>
